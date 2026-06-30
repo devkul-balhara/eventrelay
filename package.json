@@ -1,0 +1,51 @@
+{
+  "name": "eventrelay",
+  "version": "1.0.0",
+  "description": "Reliable event delivery platform with REST ingestion, Redis queues, BullMQ workers, PostgreSQL persistence, retries, DLQ, scheduling and observability.",
+  "main": "dist/src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "npm run build && node dist/src/server.js",
+    "worker": "npm run build && node dist/src/workers/run.js",
+    "scheduler": "npm run build && node dist/src/scheduler/run.js",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --write .",
+    "prisma:migrate": "prisma migrate dev",
+    "benchmark": "npm run build && node dist/benchmarks/benchmark.js"
+  },
+  "keywords": [
+    "events",
+    "bullmq",
+    "redis",
+    "postgresql",
+    "webhooks"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "bullmq": "^5.26.2",
+    "express": "^4.21.2",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "pino": "^9.6.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "prisma": "5.22.0",
+    "typescript": "5.9.3",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}
