@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  RETRYING
+  DELIVERED
+  FAILED
+  DLQ
+}
+
+enum ScheduledJobStatus {
+  PENDING
+  QUEUED
+  CANCELLED
+  FAILED
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  eventId       String      @unique
+  correlationId String
+  requestId     String
+  destinationUrl String
+  payload       Json
+  status        EventStatus @default(PENDING)
+  attempts      Int         @default(0)
+  processedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deliveries    Delivery[]
+  history       EventHistory[]
+  scheduledJobs ScheduledJob[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Delivery {
+  id           String      @id @default(uuid())
+  eventId      String
+  event        Event       @relation(fields: [eventId], references: [eventId], onDelete: Cascade)
+  status       EventStatus
+  attempt      Int
+  latencyMs    Int?
+  responseCode Int?
+  failureReason String?
+  retryAt      DateTime?
+  workerId     String?
+  createdAt    DateTime    @default(now())
+
+  @@index([eventId])
+  @@index([status])
+  @@index([workerId])
+  @@index([createdAt])
+}
+
+model ScheduledJob {
+  id            String             @id @default(uuid())
+  eventId       String
+  event         Event              @relation(fields: [eventId], references: [eventId], onDelete: Cascade)
+  runAt         DateTime
+  status        ScheduledJobStatus @default(PENDING)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status, runAt])
+  @@index([eventId])
+}
+
+model EventHistory {
+  id            String      @id @default(uuid())
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [eventId], onDelete: Cascade)
+  status        EventStatus
+  message       String
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([eventId, createdAt])
+}
+
+model BenchmarkRun {
+  id              String   @id
+  events          Int
+  throughput      Int
+  p95Latency      Int
+  successRate     Float
+  retryRate       Float
+  queueDepth      Int
+  executionTimeMs Int
+  createdAt       DateTime @default(now())
+}
