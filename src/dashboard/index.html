@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>EventRelay Operations Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/dashboard/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="app-shell">
+    <aside aria-label="Console navigation" class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">ER</div>
+            <div><strong>EventRelay</strong><span>Operations Console</span></div>
+        </div>
+        <nav>
+            <a href="#overview">Overview</a>
+            <a href="#events">Events</a>
+            <a href="#queue">Processing</a>
+            <a href="#scheduler">Scheduler</a>
+            <a href="#dlq">Dead Letter Queue</a>
+            <a href="#metrics">Observability</a>
+            <a href="#logs">Logs</a>
+            <a href="#tools">Utilities</a>
+            <a href="#webhooks">Webhook Tester</a>
+        </nav>
+        
+        <section class="health-card">
+            <div class="health-card-header">
+                <span class="dot ok"></span>
+                <strong>System operational</strong>
+            </div>
+            <small>API, Redis, PostgreSQL, workers</small>
+        </section>
+    </aside>
+    
+    <main class="workspace">
+        <header class="topbar">
+            <div>
+                <h1>Operations Console</h1>
+                <p>Deliver, inspect, retry, benchmark, and secure events from one place.</p>
+            </div>
+            <div class="toolbar">
+                <span class="status-pill" id="live-status">Connecting</span>
+                <button class="btn danger" id="reset-demo">Reset</button>
+            </div>
+        </header>
+
+        <section aria-live="polite" class="metric-grid sticky-metrics" id="overview">
+            <article class="metric-card skeleton"></article>
+            <article class="metric-card skeleton"></article>
+            <article class="metric-card skeleton"></article>
+            <article class="metric-card skeleton"></article>
+            <article class="metric-card skeleton"></article>
+            <article class="metric-card skeleton"></article>
+        </section>
+
+        <section class="section-grid two-col" id="events">
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Create Event</h2><p>Submit a payload to the async delivery queue.</p></div>
+                    <code>POST /events</code>
+                </header>
+                <form class="form-grid" id="event-form">
+                    <label><span class="req">Event ID</span><input id="event-id" placeholder="evt_123e4567" required=""/></label>
+                    <label><span class="req">Correlation ID</span><input id="correlation-id" placeholder="corr_123e4567" required=""/></label>
+                    <label><span class="req">Request ID</span><input id="request-id" placeholder="req_123e4567" required=""/></label>
+                    <label>Destination URL<input id="destination-url" placeholder="http://localhost:3000/simulate/destination"/></label>
+                    <label class="span-2"><span class="req">Payload (JSON)</span>
+                        <div class="relative-wrapper">
+                            <textarea id="event-payload" placeholder='{&#10;  "type": "user.signup",&#10;  "data": {&#10;    "id": 12345&#10;  }&#10;}' rows="9"></textarea>
+                            <button class="icon-copy" data-copy-target="#event-payload" type="button" aria-label="Copy" disabled>
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </label>
+                    <div class="button-row span-2 equal">
+                        <button class="btn secondary" id="btn-format" data-json-action="format" data-target="event-payload" type="button" disabled>Format</button>
+                        <button class="btn secondary" id="btn-validate" data-json-action="validate" data-target="event-payload" type="button" disabled>Validate</button>
+                        <button class="btn secondary" id="clear-event-form" type="button" disabled>Clear</button>
+                        <button class="btn primary push" id="send-event" type="submit" disabled>Send Event</button>
+                    </div>
+                </form>
+                <div class="notice" id="event-result"></div>
+            </article>
+
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Event Inspector</h2><p>Inspect payload, timeline, deliveries, retries, and schedules.</p></div>
+                    <code>GET /events/:id</code>
+                </header>
+                <form class="search-row" id="inspect-form" style="margin-bottom: 24px; align-items: flex-end;">
+                    <label style="flex: 1;"><span class="req">Event ID</span><input id="inspect-id" placeholder="Enter Event ID..." required=""/></label>
+                    <button class="btn primary" id="btn-inspect" type="submit" disabled style="margin-bottom: 2px;">Inspect</button>
+                    <button class="btn secondary" id="btn-inspect-clear" type="button" disabled style="margin-bottom: 2px;">Clear</button>
+                </form>
+                <div class="inspector empty-state" id="event-details">No event selected. Search by Event ID to view status, delivery attempts, and history.</div>
+            </article>
+        </section>
+
+        <section class="section-grid three-col" id="queue">
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Queue Explorer</h2><p>Waiting, delayed, active, scheduled, and recent jobs.</p></div>
+                </header>
+                <div class="tabs" id="queue-tabs">
+                    <button class="active" data-tab="all">All</button>
+                    <button data-tab="waiting">Waiting</button>
+                    <button data-tab="active">Processing</button>
+                    <button data-tab="delayed">Delayed</button>
+                    <button data-tab="scheduled">Scheduled</button>
+                </div>
+                <div class="table-wrap" id="queue-explorer"></div>
+            </article>
+
+            <article class="card" id="workers">
+                <header class="card-head">
+                    <div><h2>Worker Pool</h2><p>Worker activity, throughput, utilization, and uptime.</p></div>
+                </header>
+                <div class="table-wrap" id="worker-pool"></div>
+            </article>
+
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Failure Simulation</h2><p>Control local destination behavior.</p></div>
+                    <span class="chip" id="simulation-current">Off</span>
+                </header>
+                <form class="stack" id="simulation-form">
+                    <div class="segmented" id="simulation-modes">
+                        <button data-mode="off" type="button">Off</button>
+                        <button data-mode="fail20" type="button">20%</button>
+                        <button data-mode="fail50" type="button">50%</button>
+                        <button data-mode="alwaysFail" type="button">Always</button>
+                        <button data-mode="timeout" type="button">Timeout</button>
+                        <button data-mode="slow" type="button">Slow</button>
+                    </div>
+                    <div class="form-grid">
+                        <label>Slow ms<input id="slow-ms" min="1" type="number" value="1500"/></label>
+                        <label>Timeout ms<input id="timeout-ms" min="1" type="number" value="5000"/></label>
+                    </div>
+                    <button class="btn primary" id="apply-simulation" type="submit">Apply Simulation</button>
+                    <pre class="code-box" id="simulation-config"></pre>
+                </form>
+            </article>
+        </section>
+
+        <section class="section-grid two-col" id="scheduler">
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Schedule Event</h2><p>Deliver events after a delay or at a fixed time.</p></div>
+                    <code>POST /schedule</code>
+                </header>
+                <form class="form-grid" id="schedule-form">
+                    <label><span class="req">Event ID</span><input id="schedule-id" placeholder="evt_scheduled_1" required=""/></label>
+                    <label><span class="req">Correlation ID</span><input id="schedule-corr-id" placeholder="corr_scheduled_1" required=""/></label>
+                    <label><span class="req">Request ID</span><input id="schedule-req-id" placeholder="req_scheduled_1" required=""/></label>
+                    <label>Destination URL<input id="schedule-dest-url" placeholder="http://localhost:3000/simulate/destination"/></label>
+                    
+                    <label><span class="req">Delay (sec)</span><input id="schedule-delay" placeholder="30" type="number"/></label>
+                    <label>Absolute datetime<input id="schedule-at" type="datetime-local"/></label>
+
+                    <label class="span-2"><span class="req">Payload (JSON)</span>
+                        <div class="relative-wrapper">
+                            <textarea id="schedule-payload" placeholder='{&#10;  "type": "user.signup",&#10;  "data": {&#10;    "id": 12345&#10;  }&#10;}' rows="6"></textarea>
+                            <button class="icon-copy" data-copy-target="#schedule-payload" type="button" aria-label="Copy" disabled>
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </label>
+                    <div class="button-row span-2 equal">
+                        <button class="btn secondary" id="btn-sch-format" data-json-action="format" data-target="schedule-payload" type="button" disabled>Format</button>
+                        <button class="btn secondary" id="btn-sch-validate" data-json-action="validate" data-target="schedule-payload" type="button" disabled>Validate</button>
+                        <button class="btn secondary" id="clear-schedule-form" type="button" disabled>Clear</button>
+                        <button class="btn primary push" id="btn-schedule" type="submit" disabled>Schedule Event</button>
+                    </div>
+                </form>
+                <div class="notice" id="schedule-result"></div>
+            </article>
+
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Upcoming Scheduled Events</h2><p>Pending jobs with live countdowns.</p></div>
+                </header>
+                <div class="table-wrap" id="scheduled-events"></div>
+            </article>
+        </section>
+
+        <section class="card" id="dlq">
+            <header class="card-head">
+                <div><h2>Dead Letter Queue</h2><p>Inspect, replay, delete, and bulk manage failed events.</p></div>
+                <div class="button-row">
+                    <button class="btn secondary" id="replay-all-dlq" disabled>Replay All</button>
+                    <button class="btn danger" id="clear-dlq" disabled>Clear DLQ</button>
+                </div>
+            </header>
+            <div class="filters" style="margin-bottom: 16px;">
+                <input id="dlq-search" placeholder="Search DLQ..." style="flex: 1;"/>
+                <select id="dlq-filter">
+                    <option value="newest">Sort: Newest</option>
+                    <option value="attempts">Sort: Most attempts</option>
+                </select>
+            </div>
+            <div class="table-wrap" id="dlq-table"></div>
+        </section>
+
+        <section class="section-grid two-col" id="metrics">
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>System Metrics</h2><p>Reliability, latency, throughput, and utilization.</p></div>
+                </header>
+                <div class="metric-panels" id="metric-bars"></div>
+            </article>
+
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Performance Trends</h2><p>Lightweight SVG area charts.</p></div>
+                </header>
+                <div class="charts" id="charts"></div>
+            </article>
+        </section>
+
+        <section class="card" id="logs">
+            <header class="card-head sticky-controls">
+                <div><h2>Live Logs</h2><p>Search, filter, pause, copy, and export structured backend logs.</p></div>
+                <div class="button-row">
+                    <button class="btn secondary" id="pause-logs">Pause</button>
+                    <button class="btn secondary" id="download-logs">Download</button>
+                </div>
+            </header>
+            <div class="filters">
+                <input id="log-search" placeholder="Search logs..."/>
+                <select id="log-level">
+                    <option value="all">All levels</option>
+                    <option value="info">Info</option>
+                    <option value="warn">Warn</option>
+                    <option value="error">Error</option>
+                </select>
+                <label class="check"><input checked="" id="log-autoscroll" type="checkbox"/> Auto scroll</label>
+            </div>
+            <div class="logs" id="log-list"></div>
+        </section>
+
+        <section class="section-grid two-col" id="tools">
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>Benchmark Runner</h2><p>Run burst tests and compare historical results.</p></div>
+                </header>
+                <form class="form-grid" id="benchmark-form">
+                    <label>Size
+                        <select id="benchmark-size">
+                            <option>100</option>
+                            <option>500</option>
+                            <option selected="">1000</option>
+                            <option>2500</option>
+                            <option>5000</option>
+                            <option>10000</option>
+                            <option>25000</option>
+                            <option>50000</option>
+                            <option>100000</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </label>
+                    <label>Custom size<input id="benchmark-custom" max="100000" min="1" placeholder="Custom" type="number"/></label>
+                    <button class="btn primary span-2" id="run-benchmark" type="submit">Run Benchmark</button>
+                </form>
+                <div class="progress"><div id="benchmark-progress" style="width:0%"></div></div>
+                <div class="notice" id="benchmark-result"></div>
+                <div class="button-row equal" style="margin-top: 16px;">
+                    <button class="btn secondary" id="export-benchmark-csv" disabled>Export CSV</button>
+                    <button class="btn secondary" id="export-benchmark-json" disabled>Export JSON</button>
+                    <button class="btn danger" id="clear-benchmarks" disabled>Clear History</button>
+                </div>
+                <div class="table-wrap" id="benchmark-history" style="margin-top: 16px;"></div>
+            </article>
+
+            <article class="card">
+                <header class="card-head">
+                    <div><h2>JWT Generator</h2><p>Generate, decode, validate, and copy JWTs.</p></div>
+                </header>
+                
+                <form class="stack" id="jwt-generate-form">
+                    <div class="form-grid">
+                        <label><span class="req">Subject</span><input id="jwt-subject" placeholder="dashboard-user"/></label>
+                        <label>Roles<input id="jwt-roles" placeholder="admin,operator"/></label>
+                        <label>Expiration
+                            <select id="jwt-exp">
+                                <option>15m</option>
+                                <option selected="">1h</option>
+                                <option>24h</option>
+                                <option>7d</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </label>
+                        <label>Custom expiration<input id="jwt-exp-custom" placeholder="2h"/></label>
+                        <button class="btn primary span-2 full-width" id="btn-generate-jwt" type="submit" disabled>Generate JWT</button>
+                    </div>
+                </form>
+                
+                <div class="relative-wrapper" style="margin-top: 24px; margin-bottom: 24px;">
+                    <textarea id="jwt-output" readonly="" rows="4" placeholder="Generated token will appear here..."></textarea>
+                    <button class="icon-copy" data-copy-target="#jwt-output" type="button" aria-label="Copy" disabled>
+                        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-soft); margin-bottom: 24px; width: 100%;"/>
+
+                <form class="stack" id="jwt-validate-form">
+                    <label>Validate existing token
+                        <textarea id="jwt-validate-input" placeholder="Paste existing JWT to validate" rows="4" style="margin-top: 8px;"></textarea>
+                    </label>
+                    <div class="button-row equal" style="margin: 8px 0 16px;">
+                        <button class="btn secondary" id="clear-jwt" type="button" disabled>Clear All</button>
+                        <button class="btn primary push" id="validate-jwt" type="button" disabled>Validate Existing JWT</button>
+                    </div>
+                </form>
+                
+                <div class="relative-wrapper">
+                    <pre class="code-box" id="jwt-decoded"></pre>
+                    <button class="icon-copy" data-copy-target="#jwt-decoded" type="button" aria-label="Copy" disabled>
+                        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+            </article>
+        </section>
+
+        <section class="card" id="webhooks">
+            <header class="card-head">
+                <div><h2>Webhook Integration Tester</h2><p>Submit signed webhook events securely to the production endpoint.</p></div>
+                <span class="chip">HMAC</span>
+            </header>
+            <div class="section-grid two-col compact">
+                <form class="stack" id="webhook-form">
+                    <label><span class="req">Webhook Destination</span><input id="webhook-destination" placeholder="/webhooks/events"/></label>
+                    <p class="helper" style="font-size: 12px; color: var(--muted); margin-top: -6px;">
+                        Must point to the protected production endpoint (e.g. <code>/webhooks/events</code>).
+                    </p>
+                    <label><span class="req">Event Wrapper (JSON)</span>
+                       <div class="relative-wrapper">
+                           <textarea id="webhook-payload" placeholder='{&#10;  "event_id": "evt_wh_1",&#10;  "correlation_id": "corr_wh_1",&#10;  "request_id": "req_wh_1",&#10;  "payload": {&#10;    "type": "webhook.integration"&#10;  }&#10;}' rows="9"></textarea>
+                           <button class="icon-copy" data-copy-target="#webhook-payload" type="button" aria-label="Copy" disabled>
+                               <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                           </button>
+                       </div>
+                   </label>
+                    <label><span class="req">Secret</span><input id="webhook-secret" placeholder="my-super-secret"/></label>
+                    <div class="button-row equal">
+                        <button class="btn secondary" id="btn-wh-format" data-json-action="format" data-target="webhook-payload" type="button" disabled>Format</button>
+                        <button class="btn secondary" id="btn-wh-validate" data-json-action="validate" data-target="webhook-payload" type="button" disabled>Validate</button>
+                        <button class="btn secondary" id="clear-webhook" type="button" disabled>Clear</button>
+                        <button class="btn primary push" id="btn-send-webhook" type="submit" disabled>Send Webhook</button>
+                    </div>
+                </form>
+                
+                <div class="stack webhook-output">
+                    <div class="output-block">Generated Signature
+                        <div class="relative-wrapper">
+                            <pre class="code-box" id="hmac-output"></pre>
+                            <button class="icon-copy" data-copy-target="#hmac-output" type="button" aria-label="Copy" disabled>
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="output-block">Request Headers
+                        <div class="relative-wrapper">
+                            <pre class="code-box" id="webhook-headers"></pre>
+                            <button class="icon-copy" data-copy-target="#webhook-headers" type="button" aria-label="Copy" disabled>
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="output-block">Server Response
+                        <div class="relative-wrapper">
+                            <pre class="code-box" id="webhook-result"></pre>
+                            <button class="icon-copy" data-copy-target="#webhook-result" type="button" aria-label="Copy" disabled>
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<dialog id="confirm-dialog">
+    <form method="dialog"><h3 id="confirm-title">Confirm action</h3><p id="confirm-message" style="color: var(--muted); font-size: 14px; margin-top: 8px; margin-bottom: 24px;"></p><div class="button-row" style="justify-content: flex-end;"><button class="btn secondary" value="cancel">Cancel</button><button class="btn danger" id="confirm-ok" value="ok">Confirm</button></div></form>
+</dialog>
+
+<div aria-live="polite" class="toast" id="toast" role="status"></div>
+<script src="/dashboard/app.js"></script>
+</body>
+</html>
