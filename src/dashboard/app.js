@@ -904,4 +904,4 @@ document.querySelectorAll('.sidebar a').forEach((link) => {
   });
 });
 
-setInterval(refresh, 1000);
+setInterval(refresh, 5000);
