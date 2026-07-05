@@ -284,7 +284,7 @@ svg { width: 100%; height: 100px; display: block; overflow: visible; }
 @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
 @media (max-width: 850px) {
-  .app-shell { grid-template-columns: 1fr; }
+  .app-shell {grid-template-columns: 1fr;}
   .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 20px; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; }
   nav { display: flex; flex-wrap: wrap; width: 100%; gap: 8px; margin-top: 16px; }
   .health-card { margin-top: 0; width: 100%; }
