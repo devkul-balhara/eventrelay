@@ -32,5 +32,14 @@ export function createApp() {
     res.status(500).json({ error: message });
   });
 
+  app.get('/health', (_req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      service: 'EventRelay',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    });
+  });
+
   return app;
 }
