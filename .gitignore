@@ -90,3 +90,6 @@ test-results/
 # =========================
 *.pid
 *.seed
+
+# Ignore local Docker volume data
+docker/
