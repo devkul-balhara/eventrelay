@@ -6,7 +6,7 @@ import { DeliveryWorkerPool } from './workers/deliveryWorker';
 
 const app = createApp();
 const workerPool = new DeliveryWorkerPool(env.WORKER_CONCURRENCY);
-workerPool.start(Number(process.env.WORKER_COUNT ?? 1));
+workerPool.start(env.WORKER_COUNT);
 schedulerService.start();
 
 const server = app.listen(env.PORT, () => {
