@@ -14,7 +14,8 @@ const schema = z.object({
   WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
   BASE_DELAY_MS: z.coerce.number().int().positive().default(1000),
   MAX_RETRIES: z.coerce.number().int().positive().default(5),
-  RATE_LIMIT_RPS: z.coerce.number().int().positive().default(50)
+  RATE_LIMIT_RPS: z.coerce.number().int().positive().default(50),
+  WORKER_COUNT: z.coerce.number().int().positive().default(1)
 });
 
 export const env = schema.parse(process.env);
