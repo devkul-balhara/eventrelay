@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: eventrelay
+      POSTGRES_PASSWORD: eventrelay
+      POSTGRES_DB: eventrelay
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventrelay"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://eventrelay:eventrelay@postgres:5432/eventrelay?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-me-in-prod
+      WEBHOOK_SECRET: my-super-secret
+      DESTINATION_URL: http://app:3000/simulate/destination
+      WORKER_CONCURRENCY: 5
+      BASE_DELAY_MS: 1000
+      MAX_RETRIES: 5
+      RATE_LIMIT_RPS: 50
+      LOG_LEVEL: info
+      WORKER_COUNT: 5
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+  redis-data:
