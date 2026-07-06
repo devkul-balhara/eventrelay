@@ -223,7 +223,7 @@ function renderOverview(metrics) {
     ['Delivered', metrics.statuses?.DELIVERED ?? 0, `${pct(metrics.reliability.successRate)} success`, 'ok'],
     ['In Progress', (metrics.statuses?.PROCESSING ?? 0) + (metrics.statuses?.RETRYING ?? 0), `${metrics.queue.activeJobs} active`, 'warn'],
     ['Failed / DLQ', (metrics.statuses?.FAILED ?? 0) + (metrics.statuses?.DLQ ?? 0), `${metrics.reliability.dlqCount} DLQ`, 'bad'],
-    ['P95 Latency', `${formatNumber(metrics.performance.p95Latency)}ms`, `P99 ${formatNumber(metrics.performance.p99Latency)}ms`, 'latency'],
+    ['P95 Latency', `${formatNumber(metrics.performance.p95Latency)}ms`, `P99: ${formatNumber(metrics.performance.p99Latency)}ms`, 'latency'],
     ['Throughput', `${formatNumber(metrics.performance.eventsPerSecond, 2)}/s`, 'events per second', 'throughput']
   ];
   $('overview').innerHTML = cards.map(([label, value, sub]) => `
@@ -252,7 +252,9 @@ function renderMetrics(metrics) {
     <div class="chart-card"><strong>Queue Depth</strong>${sparkline(state.metricSeries.queue, '#2563eb', 10)}</div>
     <div class="chart-card"><strong>Retries / DLQ</strong>${sparkline(state.metricSeries.retries.map((value, index) => value + (state.metricSeries.dlq[index] ?? 0)), '#b42318', 5)}</div>
     <div class="detail-grid">
-      <div class="detail-item"><span>P50</span><strong>${formatNumber(metrics.performance.p50Latency)}ms</strong></div>
+      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+        <span>P50</span><strong>${formatNumber(metrics.performance.p50Latency)}ms</strong>
+      </div>
       <div class="detail-item"><span>P95</span><strong>${formatNumber(metrics.performance.p95Latency)}ms</strong></div>
       <div class="detail-item"><span>P99</span><strong>${formatNumber(metrics.performance.p99Latency)}ms</strong></div>
     </div>`;
@@ -903,5 +905,6 @@ document.querySelectorAll('.sidebar a').forEach((link) => {
     history.pushState(null, null, targetId);
   });
 });
+
 
 setInterval(refresh, 5000);
