@@ -21,8 +21,8 @@ export class EventQueue {
       {
         jobId: `${eventId}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
         delay: delayMs,
-        removeOnComplete: 1000,
-        removeOnFail: false,
+        removeOnComplete: true, // CRITICAL: Instantly purges job from RAM upon success
+        removeOnFail: true,     // CRITICAL: Instantly purges job from RAM upon failure
         attempts: 1
       },
     );
