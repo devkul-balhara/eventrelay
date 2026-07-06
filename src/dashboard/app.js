@@ -252,18 +252,19 @@ function renderMetrics(metrics) {
     <div class="chart-card"><strong>Queue Depth</strong>${sparkline(state.metricSeries.queue, '#2563eb', 10)}</div>
     <div class="chart-card"><strong>Retries / DLQ</strong>${sparkline(state.metricSeries.retries.map((value, index) => value + (state.metricSeries.dlq[index] ?? 0)), '#b42318', 5)}</div>
     <div class="detail-grid">
-      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
-        <span>P50</span><strong>${formatNumber(metrics.performance.p50Latency)}ms</strong>
-      </div>
-      <div class="detail-grid">
-      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
-        <span>P95</span><strong>${formatNumber(metrics.performance.p95Latency)}ms</strong>
-      </div>
-      <div class="detail-grid">
-      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
-        <span>P99</span><strong>${formatNumber(metrics.performance.p99Latency)}ms</strong>
-      </div>
-    </div>`;
+    <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+      <span>P50</span>
+      <strong>${formatNumber(metrics.performance.p50Latency)}ms</strong>
+    </div>
+    <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+      <span>P95</span>
+      <strong>${formatNumber(metrics.performance.p95Latency)}ms</strong>
+    </div>
+    <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+      <span>P99</span>
+      <strong>${formatNumber(metrics.performance.p99Latency)}ms</strong>
+    </div>
+  </div>`;
 }
 
 function sparkline(values, colorHex, absoluteMax = 10) {
