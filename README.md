@@ -52,6 +52,7 @@
 - [Configuration](#configuration)
 - [Testing](#testing)
 - [Tech Stack](#tech-stack)
+- [Cloud Infrastructure](#cloud-infrastructure)
 - [Reliability Features](#reliability-features)
 - [Operations Dashboard](#operations-dashboard)
 - [Data Model](#data-model)
@@ -808,6 +809,25 @@ npm run build
 | Containerization | Docker & Docker Compose |
 | Dashboard | HTML, CSS, Vanilla JavaScript (No Framework) |
 | Testing | Vitest |
+
+---
+
+# Cloud Infrastructure
+
+The live demo is deployed across a modern serverless cloud stack:
+
+| Service | Provider | Purpose |
+|---------|----------|---------|
+| **Compute** | [Render](https://render.com) | Hosts the Node.js Express API and background worker processes. |
+| **Database** | [Neon](https://neon.tech) | Serverless PostgreSQL for persistent operational state and event history. |
+| **Queue** | [Upstash](https://upstash.com) | Serverless Redis for low-latency BullMQ message brokering. |
+
+### Production Deployment Notes
+If you are deploying this stack yourself, note the following infrastructure requirements:
+
+1. **Database Connection Pooling (Neon):** The application connects to PostgreSQL using a pooled connection (`?pgbouncer=true`). However, Prisma migrations require a direct connection. You must configure both `DATABASE_URL` (pooled) and `DIRECT_URL` (un-pooled) in your environment.
+2. **Redis TLS (Upstash):** Upstash requires a secure TLS connection. Ensure your `REDIS_URL` uses the `rediss://` protocol and your connection object explicitly configures `family: 4` (IPv4) to prevent DNS resolution timeouts on certain cloud hosts.
+3. **Worker Scaling:** On memory-constrained cloud instances, it is highly recommended to scale vertically (e.g., `WORKER_CONCURRENCY=5`) rather than horizontally (`WORKER_COUNT=5`) to prevent V8 out-of-memory (OOM) crashes.
 
 ---
 
