@@ -13,6 +13,7 @@
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express)
 ![Redis](https://img.shields.io/badge/Redis-7.x-DC382D?logo=redis)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
+![Neon](https://img.shields.io/badge/Neon-Serverless-00E599?logo=neon)
 ![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)
 ![BullMQ](https://img.shields.io/badge/BullMQ-Queue-red)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)
@@ -820,14 +821,14 @@ The live demo is deployed across a modern serverless cloud stack:
 |---------|----------|---------|
 | **Compute** | [Render](https://render.com) | Hosts the Node.js Express API and background worker processes. |
 | **Database** | [Neon](https://neon.tech) | Serverless PostgreSQL for persistent operational state and event history. |
-| **Queue** | [Upstash](https://upstash.com) | Serverless Redis for low-latency BullMQ message brokering. |
+| **Queue** | [Aiven](https://aiven.io) | Valkey (Redis open-source fork) for low-latency BullMQ message brokering. |
 
 ### Production Deployment Notes
 If you are deploying this stack yourself, note the following infrastructure requirements:
 
-1. **Database Connection Pooling (Neon):** The application connects to PostgreSQL using a pooled connection (`?pgbouncer=true`). However, Prisma migrations require a direct connection. You must configure both `DATABASE_URL` (pooled) and `DIRECT_URL` (un-pooled) in your environment.
-2. **Redis TLS (Upstash):** Upstash requires a secure TLS connection. Ensure your `REDIS_URL` uses the `rediss://` protocol and your connection object explicitly configures `family: 4` (IPv4) to prevent DNS resolution timeouts on certain cloud hosts.
-3. **Worker Scaling:** On memory-constrained cloud instances, it is highly recommended to scale vertically (e.g., `WORKER_CONCURRENCY=5`) rather than horizontally (`WORKER_COUNT=5`) to prevent V8 out-of-memory (OOM) crashes.
+1. **Database Connection Pooling (Neon):** Under high concurrent load, workers will exhaust standard database connections. The application connects to PostgreSQL using a pooled connection (`?pgbouncer=true&connection_limit=80`). However, Prisma migrations require a direct connection. You must configure both `DATABASE_URL` (pooled) and `DIRECT_URL` (un-pooled) in your environment.
+2. **Memory-Capped Transit Layer (Aiven):** To prevent Out-Of-Memory (OOM) crashes on free/constrained cloud tiers (500MB limits), the BullMQ queues are configured as a "Self-Cleaning Transit Layer" (`removeOnComplete: true`, `removeOnFail: true`). Valkey instantly purges jobs from RAM upon completion, while PostgreSQL acts as the durable storage layer for history and DLQ tracking.
+3. **Worker Scaling:** On CPU-constrained cloud instances (e.g., Render Free Tier 0.1 CPU), it is highly recommended to scale concurrency per worker (e.g., `WORKER_CONCURRENCY=15`, `WORKER_COUNT=1`) rather than spinning up multiple Node.js processes to prevent excessive CPU context-switching.
 
 ---
 
@@ -939,6 +940,9 @@ Retries and Dead Letter Queues isolate downstream failures without interrupting 
 ### Dashboard-first Observability
 
 Operational metrics are surfaced through an interactive dashboard, enabling inspection of queue state, worker activity and system health without external tooling.
+
+### Self-Cleaning Transit Layer
+To operate safely within strict cloud memory limits (500MB), the queue acts purely as a high-speed transit layer. Completed and failed jobs are instantly purged from Valkey's RAM the millisecond they finish. PostgreSQL serves as the durable storage layer, retaining all historical logs, delivery attempts, and Dead Letter Queue states. This guarantees zero memory leaks during massive benchmark bursts.
 
 
 ### Modular Architecture
