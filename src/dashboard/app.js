@@ -255,8 +255,14 @@ function renderMetrics(metrics) {
       <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
         <span>P50</span><strong>${formatNumber(metrics.performance.p50Latency)}ms</strong>
       </div>
-      <div class="detail-item"><span>P95</span><strong>${formatNumber(metrics.performance.p95Latency)}ms</strong></div>
-      <div class="detail-item"><span>P99</span><strong>${formatNumber(metrics.performance.p99Latency)}ms</strong></div>
+      <div class="detail-grid">
+      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+        <span>P95</span><strong>${formatNumber(metrics.performance.p95Latency)}ms</strong>
+      </div>
+      <div class="detail-grid">
+      <div class="detail-item" style="display: flex; flex-direction: column; align-items: center;">
+        <span>P99</span><strong>${formatNumber(metrics.performance.p99Latency)}ms</strong>
+      </div>
     </div>`;
 }
 
